@@ -4,6 +4,8 @@
 # therefore waits for it to disconnect and reconnect again.
 #
 # This has no valid use outside plans!
+require 'timeout'
+
 Puppet::Functions.create_function(:'reboot::wait') do
   local_types do
     type 'TargetOrTargets = Variant[String[1], Target, Array[TargetOrTargets]]'
@@ -39,7 +41,7 @@ Puppet::Functions.create_function(:'reboot::wait') do
 
           # Once the target has disconnected, wait for it to come back
           wait_until(params[:reconnect_wait], params[:retry_interval]) { connected?(target) }
-        rescue StandardError
+        rescue Timeout::Error
           raise "Timed out waiting for #{target.name} to reboot"
         end
       end
@@ -69,7 +71,7 @@ Puppet::Functions.create_function(:'reboot::wait') do
   def wait_until(timeout = 10, retry_interval = 1)
     start = Time.now
     until yield
-      raise 'Timeout' if (Time.now - start).to_i >= timeout
+      raise Timeout::Error if (Time.now - start).to_i >= timeout
       sleep(retry_interval)
     end
   end
